@@ -85,7 +85,7 @@ func (p *DatadogProvider) Query(ctx context.Context, query schema.IncidentQuery)
 		}
 
 		// Transform and add incidents from this page
-		pageIncidents := normalizeSDKIncidentListResponse(resp, p.config.Source)
+		pageIncidents := normalizeSDKIncidentListResponse(resp, p.config.Source, p.config.Site)
 		allIncidents = append(allIncidents, pageIncidents...)
 
 		// Check if there are more pages
@@ -123,7 +123,7 @@ func (p *DatadogProvider) Get(ctx context.Context, id string) (schema.Incident, 
 	}
 	defer httpResp.Body.Close()
 
-	return normalizeSDKIncident(resp.Data, p.config.Source), nil
+	return normalizeSDKIncident(resp.Data, p.config.Source, p.config.Site), nil
 }
 
 // Create creates a new incident in Datadog.
@@ -182,7 +182,7 @@ func (p *DatadogProvider) Create(ctx context.Context, in schema.CreateIncidentIn
 	}
 	defer httpResp.Body.Close()
 
-	return normalizeSDKIncident(resp.Data, p.config.Source), nil
+	return normalizeSDKIncident(resp.Data, p.config.Source, p.config.Site), nil
 }
 
 // Update modifies an incident in Datadog.
@@ -249,7 +249,7 @@ func (p *DatadogProvider) Update(ctx context.Context, id string, in schema.Updat
 	}
 	defer httpResp.Body.Close()
 
-	return normalizeSDKIncident(resp.Data, p.config.Source), nil
+	return normalizeSDKIncident(resp.Data, p.config.Source, p.config.Site), nil
 }
 
 // GetTimeline returns the timeline entries for an incident.
@@ -372,16 +372,16 @@ func MapDatadogSeverityToOpsOrch(severity string) string {
 }
 
 // normalizeSDKIncidentListResponse converts SDK incidents to OpsOrch incidents.
-func normalizeSDKIncidentListResponse(resp datadogV2.IncidentsResponse, source string) []schema.Incident {
+func normalizeSDKIncidentListResponse(resp datadogV2.IncidentsResponse, source string, site string) []schema.Incident {
 	incidents := make([]schema.Incident, 0, len(resp.Data))
 	for _, data := range resp.Data {
-		incidents = append(incidents, normalizeSDKIncident(data, source))
+		incidents = append(incidents, normalizeSDKIncident(data, source, site))
 	}
 	return incidents
 }
 
 // normalizeSDKIncident converts a single SDK incident to an OpsOrch incident.
-func normalizeSDKIncident(data datadogV2.IncidentResponseData, source string) schema.Incident {
+func normalizeSDKIncident(data datadogV2.IncidentResponseData, source string, site string) schema.Incident {
 	incident := schema.Incident{
 		Fields: make(map[string]any),
 		Metadata: map[string]any{
@@ -389,8 +389,15 @@ func normalizeSDKIncident(data datadogV2.IncidentResponseData, source string) sc
 		},
 	}
 
-	// Set ID
+	// Set ID and URL
 	incident.ID = data.Id
+
+	// Generate URL
+	// Format: https://app.{site}/incidents/{incident_id}
+	if site == "" {
+		site = "datadoghq.com"
+	}
+	incident.URL = fmt.Sprintf("https://app.%s/incidents/%s", site, data.Id)
 
 	if data.Attributes == nil {
 		return incident

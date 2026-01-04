@@ -63,6 +63,9 @@ func main() {
 		if len(alerts) > 0 {
 			fmt.Printf("    First monitor: %s (Status: %s, Severity: %s)\n",
 				alerts[0].Title, alerts[0].Status, alerts[0].Severity)
+			if alerts[0].URL != "" {
+				fmt.Printf("    URL: %s\n", alerts[0].URL)
+			}
 			if alerts[0].Metadata != nil {
 				fmt.Printf("    Source: %v\n", alerts[0].Metadata["source"])
 				fmt.Printf("    Monitor ID: %v\n", alerts[0].Metadata["monitor_id"])
@@ -138,6 +141,9 @@ func main() {
 			fmt.Printf("    Title: %s\n", singleAlert.Title)
 			fmt.Printf("    Status: %s\n", singleAlert.Status)
 			fmt.Printf("    Severity: %s\n", singleAlert.Severity)
+			if singleAlert.URL != "" {
+				fmt.Printf("    URL: %s\n", singleAlert.URL)
+			}
 			if singleAlert.Service != "" {
 				fmt.Printf("    Service: %s\n", singleAlert.Service)
 			}

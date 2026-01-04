@@ -64,15 +64,18 @@ func main() {
 		Limit: 10,
 	}
 
-	entries, err := provider.Query(ctx, query)
+	result, err := provider.Query(ctx, query)
 	if err != nil {
 		fmt.Printf("  ❌ Query failed: %v\n", err)
 	} else {
-		fmt.Printf("  ✓ Query succeeded: returned %d log entries\n", len(entries))
-		if len(entries) > 0 {
-			fmt.Printf("    First entry: %s\n", entries[0].Message[:min(50, len(entries[0].Message))])
-			if entries[0].Metadata != nil {
-				fmt.Printf("    Source: %v\n", entries[0].Metadata["source"])
+		fmt.Printf("  ✓ Query succeeded: returned %d log entries\n", len(result.Entries))
+		if result.URL != "" {
+			fmt.Printf("    URL: %s\n", result.URL)
+		}
+		if len(result.Entries) > 0 {
+			fmt.Printf("    First entry: %s\n", result.Entries[0].Message[:min(50, len(result.Entries[0].Message))])
+			if result.Entries[0].Metadata != nil {
+				fmt.Printf("    Source: %v\n", result.Entries[0].Metadata["source"])
 			}
 		}
 	}
@@ -90,12 +93,12 @@ func main() {
 		Limit: 10,
 	}
 
-	entries, err = provider.Query(ctx, queryWithSeverity)
+	result, err = provider.Query(ctx, queryWithSeverity)
 	if err != nil {
 		fmt.Printf("  ❌ Query with severity failed: %v\n", err)
 	} else {
-		fmt.Printf("  ✓ Query with severity succeeded: returned %d error logs\n", len(entries))
-		for i, entry := range entries {
+		fmt.Printf("  ✓ Query with severity succeeded: returned %d error logs\n", len(result.Entries))
+		for i, entry := range result.Entries {
 			if i >= 3 {
 				break
 			}
@@ -118,11 +121,11 @@ func main() {
 		Limit: 10,
 	}
 
-	entries, err = provider.Query(ctx, queryWithService)
+	result, err = provider.Query(ctx, queryWithService)
 	if err != nil {
 		fmt.Printf("  ❌ Query with service failed: %v\n", err)
 	} else {
-		fmt.Printf("  ✓ Query with service succeeded: returned %d logs\n", len(entries))
+		fmt.Printf("  ✓ Query with service succeeded: returned %d logs\n", len(result.Entries))
 	}
 	fmt.Println()
 
@@ -140,11 +143,11 @@ func main() {
 		Limit: 10,
 	}
 
-	entries, err = provider.Query(ctx, queryWithEnv)
+	result, err = provider.Query(ctx, queryWithEnv)
 	if err != nil {
 		fmt.Printf("  ❌ Query with environment failed: %v\n", err)
 	} else {
-		fmt.Printf("  ✓ Query with environment succeeded: returned %d logs\n", len(entries))
+		fmt.Printf("  ✓ Query with environment succeeded: returned %d logs\n", len(result.Entries))
 	}
 	fmt.Println()
 
@@ -162,11 +165,11 @@ func main() {
 		Limit: 10,
 	}
 
-	entries, err = provider.Query(ctx, queryWithFilters)
+	result, err = provider.Query(ctx, queryWithFilters)
 	if err != nil {
 		fmt.Printf("  ❌ Query with filters failed: %v\n", err)
 	} else {
-		fmt.Printf("  ✓ Query with filters succeeded: returned %d logs\n", len(entries))
+		fmt.Printf("  ✓ Query with filters succeeded: returned %d logs\n", len(result.Entries))
 	}
 	fmt.Println()
 

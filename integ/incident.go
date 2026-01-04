@@ -64,6 +64,9 @@ func main() {
 		if len(incidents) > 0 {
 			fmt.Printf("    First incident: %s (Status: %s, Severity: %s)\n",
 				incidents[0].Title, incidents[0].Status, incidents[0].Severity)
+			if incidents[0].URL != "" {
+				fmt.Printf("    URL: %s\n", incidents[0].URL)
+			}
 			if incidents[0].Metadata != nil {
 				fmt.Printf("    Source: %v\n", incidents[0].Metadata["source"])
 				fmt.Printf("    Public ID: %v\n", incidents[0].Metadata["public_id"])
@@ -166,6 +169,9 @@ func main() {
 			fmt.Printf("    Title: %s\n", singleIncident.Title)
 			fmt.Printf("    Status: %s\n", singleIncident.Status)
 			fmt.Printf("    Severity: %s\n", singleIncident.Severity)
+			if singleIncident.URL != "" {
+				fmt.Printf("    URL: %s\n", singleIncident.URL)
+			}
 			if singleIncident.Service != "" {
 				fmt.Printf("    Service: %s\n", singleIncident.Service)
 			}

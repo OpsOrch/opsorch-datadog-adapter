@@ -114,7 +114,7 @@ func (p *DatadogProvider) Query(ctx context.Context, query schema.AlertQuery) ([
 	}
 
 	// Transform SDK response
-	alerts := normalizeSDKMonitorResponse(monitors, p.config.Source)
+	alerts := normalizeSDKMonitorResponse(monitors, p.config.Source, p.config.Site)
 
 	// Filter by severity if specified (Datadog doesn't have native severity filter)
 	if len(query.Severities) > 0 {
@@ -143,7 +143,7 @@ func (p *DatadogProvider) Get(ctx context.Context, id string) (schema.Alert, err
 	}
 	defer httpResp.Body.Close()
 
-	return normalizeSDKMonitor(monitor, p.config.Source), nil
+	return normalizeSDKMonitor(monitor, p.config.Source, p.config.Site), nil
 }
 
 // Status mapping functions
@@ -223,16 +223,16 @@ func MapPriorityToOpsOrchSeverity(priority string) string {
 }
 
 // normalizeSDKMonitorResponse converts SDK monitors to OpsOrch alerts.
-func normalizeSDKMonitorResponse(monitors []datadogV1.Monitor, source string) []schema.Alert {
+func normalizeSDKMonitorResponse(monitors []datadogV1.Monitor, source string, site string) []schema.Alert {
 	alerts := make([]schema.Alert, 0, len(monitors))
 	for _, m := range monitors {
-		alerts = append(alerts, normalizeSDKMonitor(m, source))
+		alerts = append(alerts, normalizeSDKMonitor(m, source, site))
 	}
 	return alerts
 }
 
 // normalizeSDKMonitor converts a single SDK monitor to an OpsOrch alert.
-func normalizeSDKMonitor(m datadogV1.Monitor, source string) schema.Alert {
+func normalizeSDKMonitor(m datadogV1.Monitor, source string, site string) schema.Alert {
 	alert := schema.Alert{
 		Fields: make(map[string]any),
 		Metadata: map[string]any{
@@ -240,10 +240,17 @@ func normalizeSDKMonitor(m datadogV1.Monitor, source string) schema.Alert {
 		},
 	}
 
-	// Set ID
+	// Set ID and URL
 	if m.Id != nil {
 		alert.ID = strconv.FormatInt(*m.Id, 10)
 		alert.Metadata["monitor_id"] = *m.Id
+
+		// Generate URL
+		// Format: https://app.{site}/monitors/{monitor_id}
+		if site == "" {
+			site = "datadoghq.com"
+		}
+		alert.URL = fmt.Sprintf("https://app.%s/monitors/%d", site, *m.Id)
 	}
 
 	// Set title
