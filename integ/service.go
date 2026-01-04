@@ -62,6 +62,9 @@ func main() {
 		fmt.Printf("  ✓ Query succeeded: returned %d services\n", len(services))
 		if len(services) > 0 {
 			fmt.Printf("    First service: %s (ID: %s)\n", services[0].Name, services[0].ID)
+			if services[0].URL != "" {
+				fmt.Printf("    URL: %s\n", services[0].URL)
+			}
 			if services[0].Metadata != nil {
 				fmt.Printf("    Source: %v\n", services[0].Metadata["source"])
 			}
@@ -165,6 +168,9 @@ func main() {
 				svc := results[0]
 				fmt.Printf("    ID: %s\n", svc.ID)
 				fmt.Printf("    Name: %s\n", svc.Name)
+				if svc.URL != "" {
+					fmt.Printf("    URL: %s\n", svc.URL)
+				}
 				if team, ok := svc.Tags["team"]; ok {
 					fmt.Printf("    Team: %s\n", team)
 				}

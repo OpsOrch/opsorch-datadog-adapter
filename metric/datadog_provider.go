@@ -3,6 +3,7 @@ package metric
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -81,7 +82,7 @@ func (p *DatadogProvider) Query(ctx context.Context, query schema.MetricQuery) (
 	}
 
 	// Transform SDK response to OpsOrch schema
-	return normalizeSDKMetricResponse(resp, p.config.Source), nil
+	return normalizeSDKMetricResponse(resp, ddQuery, p.config.Source, p.config.Site), nil
 }
 
 // Describe lists available metrics from Datadog.
@@ -126,7 +127,7 @@ func (p *DatadogProvider) Describe(ctx context.Context, scope schema.QueryScope)
 		}
 
 		// Transform and add metrics from this page
-		pageDescriptors := normalizeSDKMetricsListResponse(resp, p.config.Source)
+		pageDescriptors := normalizeSDKMetricsListResponse(resp, p.config.Source, p.config.Site)
 		allDescriptors = append(allDescriptors, pageDescriptors...)
 
 		// Check if there are more pages
@@ -152,7 +153,7 @@ func (p *DatadogProvider) Describe(ctx context.Context, scope schema.QueryScope)
 }
 
 // normalizeSDKMetricResponse converts SDK timeseries response to OpsOrch schema.
-func normalizeSDKMetricResponse(resp datadogV2.TimeseriesFormulaQueryResponse, source string) []schema.MetricSeries {
+func normalizeSDKMetricResponse(resp datadogV2.TimeseriesFormulaQueryResponse, query string, source string, site string) []schema.MetricSeries {
 	if resp.Data == nil || resp.Data.Attributes == nil {
 		return []schema.MetricSeries{}
 	}
@@ -173,6 +174,14 @@ func normalizeSDKMetricResponse(resp datadogV2.TimeseriesFormulaQueryResponse, s
 				"source": source,
 			},
 		}
+
+		// Generate URL
+		// Format: https://app.{site}/metric/explorer?exp_metric={encoded_menu_query}
+		if site == "" {
+			site = "datadoghq.com"
+		}
+		// Use the query string passed in
+		ms.URL = fmt.Sprintf("https://app.%s/metric/explorer?exp_metric=%s", site, url.QueryEscape(query))
 
 		// Parse group tags into labels
 		for _, tag := range s.GroupTags {
@@ -222,19 +231,28 @@ func getMetricName(s datadogV2.TimeseriesResponseSeries, index int) string {
 }
 
 // normalizeSDKMetricsListResponse converts SDK metrics list to descriptors.
-func normalizeSDKMetricsListResponse(resp datadogV2.MetricsAndMetricTagConfigurationsResponse, source string) []schema.MetricDescriptor {
+func normalizeSDKMetricsListResponse(resp datadogV2.MetricsAndMetricTagConfigurationsResponse, source string, site string) []schema.MetricDescriptor {
 	descriptors := make([]schema.MetricDescriptor, 0, len(resp.Data))
 
 	for _, metricConfig := range resp.Data {
 		// Extract metric name from the union type
 		if metricConfig.Metric != nil && metricConfig.Metric.Id != nil {
-			descriptors = append(descriptors, schema.MetricDescriptor{
+			desc := schema.MetricDescriptor{
 				Name: *metricConfig.Metric.Id,
 				Type: "unknown", // SDK doesn't provide type in list endpoint
 				Metadata: map[string]any{
 					"source": source,
 				},
-			})
+			}
+
+			// Generate URL
+			// Format: https://app.{site}/metric/summary?metric={metric_name}
+			if site == "" {
+				site = "datadoghq.com"
+			}
+			desc.URL = fmt.Sprintf("https://app.%s/metric/summary?metric=%s", site, url.QueryEscape(desc.Name))
+
+			descriptors = append(descriptors, desc)
 		}
 	}
 

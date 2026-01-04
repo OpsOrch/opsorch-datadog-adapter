@@ -3,6 +3,7 @@ package log
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -48,7 +49,7 @@ func init() {
 }
 
 // Query searches logs in Datadog and returns normalized results.
-func (p *DatadogProvider) Query(ctx context.Context, query schema.LogQuery) ([]schema.LogEntry, error) {
+func (p *DatadogProvider) Query(ctx context.Context, query schema.LogQuery) (schema.LogEntries, error) {
 	// Create API context with authentication
 	apiCtx := common.NewAPIContext(p.config)
 
@@ -110,7 +111,7 @@ func (p *DatadogProvider) Query(ctx context.Context, query schema.LogQuery) ([]s
 		})
 
 		if err != nil {
-			return nil, err
+			return schema.LogEntries{}, err
 		}
 
 		// Transform and add logs from this page
@@ -140,7 +141,13 @@ func (p *DatadogProvider) Query(ctx context.Context, query schema.LogQuery) ([]s
 		}
 	}
 
-	return allLogs, nil
+	// Build URL to view logs in Datadog Log Explorer
+	logExplorerURL := buildLogExplorerURL(p.config.Site, ddQuery, query.Start, query.End)
+
+	return schema.LogEntries{
+		Entries: allLogs,
+		URL:     logExplorerURL,
+	}, nil
 }
 
 // buildLogQuery constructs a Datadog log query string from a LogQuery.
@@ -315,4 +322,22 @@ func normalizeSDKLogResponse(resp datadogV2.LogsListResponse, source string) []s
 	}
 
 	return entries
+}
+
+// buildLogExplorerURL generates a URL to view the query results in Datadog Log Explorer.
+func buildLogExplorerURL(site string, query string, start time.Time, end time.Time) string {
+	if site == "" {
+		site = "datadoghq.com"
+	}
+
+	// Build the Log Explorer URL
+	// Format: https://app.{site}/logs?query={encoded_query}&from_ts={start_ms}&to_ts={end_ms}
+	baseURL := fmt.Sprintf("https://app.%s/logs", site)
+
+	params := url.Values{}
+	params.Set("query", query)
+	params.Set("from_ts", fmt.Sprintf("%d", start.UnixMilli()))
+	params.Set("to_ts", fmt.Sprintf("%d", end.UnixMilli()))
+
+	return baseURL + "?" + params.Encode()
 }

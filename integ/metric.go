@@ -72,6 +72,9 @@ func main() {
 		fmt.Printf("  ✓ Query succeeded: returned %d series\n", len(series))
 		if len(series) > 0 {
 			fmt.Printf("    First series: %s with %d points\n", series[0].Name, len(series[0].Points))
+			if series[0].URL != "" {
+				fmt.Printf("    URL: %s\n", series[0].URL)
+			}
 			if series[0].Metadata != nil {
 				fmt.Printf("    Source: %v\n", series[0].Metadata["source"])
 			}
@@ -139,6 +142,9 @@ func main() {
 					fmt.Print(", ")
 				}
 				fmt.Print(descriptors[i].Name)
+				if i == 0 && descriptors[i].URL != "" {
+					fmt.Printf(" (URL: %s)", descriptors[i].URL)
+				}
 			}
 			fmt.Println()
 		}

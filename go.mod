@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/DataDog/datadog-api-client-go/v2 v2.50.0
-	github.com/opsorch/opsorch-core v0.0.4
+	github.com/opsorch/opsorch-core v0.4.0
 )
 
 require (

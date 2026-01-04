@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/DataDog/datadog-api-client-go/v2/api/datadog"
@@ -83,7 +84,7 @@ func (p *DatadogProvider) Query(ctx context.Context, query schema.ServiceQuery) 
 		}
 
 		// Normalize and add services from this page
-		pageServices := normalizeServiceListResponse(resp, p.config.Source)
+		pageServices := normalizeServiceListResponse(resp, p.config.Source, p.config.Site)
 		allServices = append(allServices, pageServices...)
 
 		// Check if there are more pages
@@ -108,17 +109,17 @@ func (p *DatadogProvider) Query(ctx context.Context, query schema.ServiceQuery) 
 }
 
 // normalizeServiceListResponse converts Datadog SDK services to OpsOrch services.
-func normalizeServiceListResponse(resp datadogV2.ServiceDefinitionsListResponse, source string) []schema.Service {
+func normalizeServiceListResponse(resp datadogV2.ServiceDefinitionsListResponse, source string, site string) []schema.Service {
 	data := resp.GetData()
 	services := make([]schema.Service, 0, len(data))
 	for _, svcDef := range data {
-		services = append(services, normalizeService(svcDef, source))
+		services = append(services, normalizeService(svcDef, source, site))
 	}
 	return services
 }
 
 // normalizeService converts a single Datadog SDK service to an OpsOrch service.
-func normalizeService(svcDef datadogV2.ServiceDefinitionData, source string) schema.Service {
+func normalizeService(svcDef datadogV2.ServiceDefinitionData, source string, site string) schema.Service {
 	id := svcDef.GetId()
 
 	// Use ID as name (service definitions use ID as the service name)
@@ -130,6 +131,13 @@ func normalizeService(svcDef datadogV2.ServiceDefinitionData, source string) sch
 			"source": source,
 		},
 	}
+
+	// Generate URL
+	// Format: https://app.{site}/services/{service_name}
+	if site == "" {
+		site = "datadoghq.com"
+	}
+	service.URL = fmt.Sprintf("https://app.%s/services/%s", site, id)
 
 	// Get attributes if present
 	if attrs, ok := svcDef.GetAttributesOk(); ok {
